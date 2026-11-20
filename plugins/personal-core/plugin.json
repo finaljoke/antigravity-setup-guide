@@ -1,0 +1,11 @@
+{
+  "name": "personal-core",
+  "displayName": "Personal Core Rules",
+  "version": "1.0.0",
+  "description": "跨项目通用协作原则、工程纪律、中文文案规范与四通道知识治理门禁（纯净跨平台版）。",
+  "suggestedPrompts": [
+    "按轻量 SDD 先出改动方案与验证步骤",
+    "检查本次改动前是否已核对仓内先例与生效渲染路径",
+    "将本次沉淀的可复用项目结论按门禁写入记忆库"
+  ]
+}
