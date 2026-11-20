@@ -1,262 +1,239 @@
 # 新电脑 Antigravity 零副作用优化参考与避坑指南
 
-本文面向**网络顺畅、无内网特殊代理包袱**的新电脑环境。目标是在零历史包袱、零上下文污染的前提下，把旧电脑上真正验证有效的协作方式与工程机制保留下来，直接获得比旧机更轻、更稳、更顺手的 Antigravity 使用体验。
+本文面向**网络顺畅、无内网特殊代理包袱**的新电脑环境，帮助你在零历史包袱、零上下文污染的前提下，把验证有效的协作纪律、插件分层架构与知识治理机制迁移到新机，获得比旧环境更轻、更稳、更可控的 Antigravity 使用体验。
 
 > [!IMPORTANT]
-> **核心原则：只带走方法论、协作纪律、插件分层架构与记忆治理门禁；彻底抛弃旧机的系统/网络/盘符补丁和运行态缓存。**
+> **核心原则：只带走方法论、协作纪律、插件分层架构与知识分流门禁；彻底抛弃旧机的运行态缓存、历史会话库与单机环境补丁。**
 
-## 仓库目录
+## 仓库目录（Single Source of Truth）
 
-- `README.md` — 本指南全文（开荒清单、选型矩阵、迁移红黑榜与避坑指南）
-- `plugins/personal-core/` — 可直接复制到 `~/.gemini/config/plugins/personal-core/` 的纯净版全局规则插件
-- `templates/project-AGENTS.md` — 可直接复制到新项目根目录的仓库级规范骨架
+所有规则与配置模板均以仓内独立文件为唯一权威源，正文只做架构解读与选型说明，不重复粘贴整段文件内容，避免日后版本漂移：
+
+- [`plugins/personal-core/plugin.json`](./plugins/personal-core/plugin.json) — `personal-core` v1.1.0 插件清单（含 `$schema` 与 `logo: "assets/logo.svg"`）
+- [`plugins/personal-core/README.md`](./plugins/personal-core/README.md) — 插件内含组件与跨平台安装说明
+- [`plugins/personal-core/assets/logo.svg`](./plugins/personal-core/assets/logo.svg) — 128×128 透明边距矢量图标（适配浅色/深色主题）
+- [`plugins/personal-core/rules/AGENTS.md`](./plugins/personal-core/rules/AGENTS.md) — 全局核心规则（纯 Markdown、无 frontmatter、体积 `< 4 KB`，四层知识分流开箱兼容 `/learn`）
+- [`templates/project-AGENTS.md`](./templates/project-AGENTS.md) — 仓库根目录 `AGENTS.md` 精简骨架模板
+- [`templates/glob-rule-example.md`](./templates/glob-rule-example.md) — `.agents/rules/<topic>.md` 文件作用域与按需触发规则模板
+- [`templates/plugins.json`](./templates/plugins.json) — 供 `~/.gemini/config/plugins.json` 使用的免拷贝 Git 同步配置模板
+- [`templates/mcp-configs.example.json`](./templates/mcp-configs.example.json) — 按需启用的 `codegraph` 与 `chrome-devtools-isolated` MCP 参考配置
 
 ```mermaid
 flowchart TD
     Root["纯净 Antigravity 三层定制架构"] --> L1["全局常驻层：personal-core 插件"]
-    Root --> L2["按需渐进层：通用与专项插件"]
-    Root --> L3["仓库自治层：各项目根目录 AGENTS.md"]
+    Root --> L2["按需渐进层：通用与专项工具链"]
+    Root --> L3["仓库自治层：项目规则与按需记忆"]
 
-    L1 --> L1A["rules/AGENTS.md（≤ 5 KB，仅跨项目通用约束）"]
-    L2 --> L2A["context7（查最新框架文档，懒加载工具）"]
-    L2 --> L2B["frontend-design（按需加载设计准则）"]
-    L2 --> L2C["chrome-devtools-plugin（Web 联测按需启用）"]
-    L2 --> L2D["codegraph（仅大型代码仓按需启用）"]
-    L3 --> L3A["单仓 AGENTS.md（≤ 20 KB，技术栈与构建红线）"]
-    L3 --> L3B["项目记忆库（严格执行记忆写回三门禁）"]
+    L1 --> L1A["rules/AGENTS.md（4 KB 以内，纯跨项目通用纪律）"]
+    L2 --> L2A["context7（查最新框架文档，Lazy 工具与按需 Skill）"]
+    L2 --> L2B["frontend-design（自建或迁入 SKILL.md，前端按需加载）"]
+    L2 --> L2C["browser subagent / chrome-devtools（内置为主，DevTools 技能配 MCP 按需开）"]
+    L2 --> L2D["codegraph（大型仓建 .codegraph 索引并配 MCP）"]
+    L3 --> L3A["仓根 AGENTS.md（≤ 20 KB，向上累加合并生效）"]
+    L3 --> L3B[".agents/rules/*.md（glob 或 model_decision 按需触发）"]
+    L3 --> L3C["四层知识分流与写回三门禁（兼容 /learn）"]
 ```
 
 ---
 
 ## 一、新机 5 步开荒落地清单
 
-1. **全新安装最新版 Antigravity**
-   - 直接安装官方最新客户端，**不要复制旧机 `~/.gemini/antigravity/` 运行态目录**（如 `conversations/`、`cache/`、`plugin_data/`、`antigravity_state.pbtxt`、`installation_id`），避免触发登录态错乱与版本残留冲突。
-2. **在 UI 中开启高自主权运行档位**
-   - 在 Antigravity Settings 界面开启高自主权限预设（`TURBO` 档）、命令自动执行（`EAGER`）、跨工作区文件读写放行（按需）以及 `swarm` 协同能力；高风险和线上不可逆操作交由规则层兜底要求人工确认。
-   - **重要**：所有插件开关与权限调整一律通过 UI 操作，**不要在运行期手动编辑 `~/.gemini/config/config.json`**，否则会绕过 Language Server 热重载，还可能覆盖并发中的权限授权配置。
-3. **部署纯净版 `personal-core` 插件**
-   - 将本仓库的 `plugins/personal-core/` 复制或软链到 `~/.gemini/config/plugins/personal-core/`（若后续在本地填入个人隐私背景或项目记忆，建议改用私有仓库同步）。
-4. **从官方 Marketplace 重装通用插件，按场景启用专项插件**
-   - 必装 `context7`（专治框架/库版本 API 幻觉）。
-   - 做 UI 或 Web 开发时，启用 `frontend-design`（从旧机仅迁移 `SKILL.md` 即可）与 `chrome-devtools-plugin`。
-   - 维护中大型代码仓库时，再单独开启 `codegraph`。
-5. **仓库级规矩全部下沉到各项目根目录 `AGENTS.md`**
-   - 让 Antigravity 随当前工作区自动发现并加载（项目级配置优先级高于全局配置），单个文件控制在 **≤ 20 KB**。
-   - 个人项目可将 `AGENTS.md` 正常提交进 Git；若某仓库不希望把个人说明推到远端，直接写入该仓的 `.git/info/exclude` 即可本地隔离。
+### 1. 全新安装最新版 Antigravity（不搬旧机运行态）
+
+- 直接安装官方最新客户端，**切勿复制旧机 `~/.gemini/antigravity/` 运行态目录**（包括 `conversations/`、`cache/`、`plugin_data/`、`antigravity_state.pbtxt`、`installation_id`）。
+- 运行态数据库、设备标识与登录态混拷极易触发工具注册异常、状态错乱或幽灵报错。
+
+### 2. 选对权限预设、终端沙箱与硬护栏（含 `swarm` 入口说明）
+
+Antigravity Settings 提供 4 档统一的权限预设（Permission Presets），控制终端命令、文件访问与 MCP/Web 行为：
+
+| 权限预设 | 终端沙箱（Terminal Sandbox） | 终端命令策略 | 文件读写范围 | MCP / Web | 适用定位 |
+| --- | --- | --- | --- | --- | --- |
+| `Request Review` | 关闭 | 每次都弹窗确认 | 仅当前工作区（修改前询问） | 询问 | 严格审查敏感变更 |
+| `Default` | **开启** | 沙箱内自动执行；跳出沙箱需确认 | 工作区 + 临时目录 | 询问 | 出厂默认均衡档 |
+| **`Auto`（推荐）** | **开启** | 沙箱内自动执行；**跳出沙箱时自动评估**，安全可逆放行、高风险仍确认 | 工作区 + 临时目录 | 询问 | **新机默认高自主推荐档** |
+| `Turbo` | 关闭 | 无限制自动执行 | **全盘文件读写** | 自动放行 | 极限全自动（必须叠加硬护栏） |
+
+- **推荐选择 `Auto` 档**：在 **Antigravity `v2.23+`（macOS / Linux）** 与 **`v2.26+`（Windows 个人账号）** 上默认可用。它默认开启 OS 原生终端沙箱（Linux `Namespaces` / macOS `sandbox-exec` / Windows 原生沙箱），沙箱内免打扰运行；遇到需联网或访问工作区外的命令时，系统自动识别安全可逆操作直接放行，危险/不可逆操作仍交由你确认。
+- **关于 `Turbo` 档的准确边界**：`Turbo` **本身就已经**关闭沙箱、放开终端命令、授予全盘读写并自动放行 MCP 与 Web；**不需要**也**不要**再去叠加修改任何旧版或内部配置键（如 `EAGER`、`ALLOW`）。
+- **硬护栏声明（关键安全认知）**：`AGENTS.md` 只是**软性提示词约束（soft prompt constraint）**，模型在复杂上下文下仍可能误触发越权操作。如果你选用 `Turbo` 档，**必须**额外配置硬性拦截手段：
+  1. 在 Settings 中添加细粒度权限规则——所有自定义规则均按 **`Deny > Ask > Allow`** 优先级生效，**高于任何权限预设（含 `Turbo`）**，例如：`Deny: write_file(~/.ssh)`、`Deny: command(rm -rf)`、`Ask: command(git push --force)`；
+  2. 或在插件/项目中配置 `PreToolUse` 生命周期钩子（`hooks.json`），在工具实际执行前以脚本代码返回 `"decision": "deny"` / `"ask"` / `"force_ask"` 硬拦截。
+- **`swarm` 的正确开启位置**：`swarm` 是默认禁用的内置插件（`"disabled": true`），**不在 Permissions 设置页里**。需要多 Agent 协同推进时，前往 **Customizations > Installed** 按需开启即可（实时生效）。
+- **严禁运行期手改 `~/.gemini/config/config.json`**：所有插件开关与权限规则一律通过 UI 或 `agy plugin enable/disable` 操作。运行期手改 `config.json` 会绕过 Language Server 热重载，还可能直接覆盖并发写入中的 `userSettings` 与权限授权。
+
+### 3. 部署纯净版 `personal-core` 插件（3 种方式任选）
+
+新机部署建议配合 Git 仓库做单源管理，以下 3 种方式等价，详情亦可对照 [`plugins/personal-core/README.md`](./plugins/personal-core/README.md)：
+
+1. **Git 仓库免拷贝同步（推荐）**：
+   - 将本仓库克隆到本地固定路径，在 `~/.gemini/config/plugins.json` 中通过 `entries` 指向克隆仓下的 `plugins` 目录（结构见 [`templates/plugins.json`](./templates/plugins.json)）。
+   - **关键提醒**：`plugins.json` **不会自动展开 `~`**，路径必须写完整绝对路径（如 `/Users/yourname/dotfiles/antigravity-setup-guide/plugins` 或 `C:/Users/yourname/dotfiles/antigravity-setup-guide/plugins`）。之后跨机同步只需 `git pull`。
+2. **官方 CLI 严格校验并安装**：
+   ```bash
+   agy plugin validate --strict ./plugins/personal-core
+   agy plugin install ./plugins/personal-core
+   ```
+3. **直接拷贝或建立目录链接到 `~/.gemini/config/plugins/personal-core/`**：
+   - macOS / Linux 可用 `ln -s /abs/path/to/plugins/personal-core ~/.gemini/config/plugins/personal-core`；
+   - Windows 在普通用户权限下请用目录联接 **`mklink /J`**（不要用 `mklink /D`，符号链接在默认策略下需要管理员提权）。
+
+部署后在 **Customizations > Installed** 确认 `personal-core` 处于开启状态（立即生效，无需重启）。若需填入个人地区背景或私有前提，请仅在本地维护或迁入私有 Git 仓库，切勿把隐私信息或密钥推入公开仓库。
+
+### 4. 重装通用插件，理清内置浏览器与专项工具边界
+
+- **必装常驻 `context7`**：从官方 Marketplace 安装（`antigravity-plugins-partners/plugin/context7`），专治框架/SDK 版本 API 幻觉。
+- **日常网页验证优先用内置 `browser` subagent（注意可用边界）**：
+  - **Antigravity App `v2.30+` + 个人 Google 账号**（逐步灰度发布中）提供零配置开箱即用的内置侧边栏浏览器；
+  - 若使用 **Antigravity CLI（`agy`）**、**IDE 扩展**，或 **企业/工作区账号**，则需准备本地 **Node.js（`npx` 在 `PATH` 中）+ Google Chrome `v144+`**，并在 Chrome 地址栏打开 `chrome://inspect/#remote-debugging` 勾选允许远程调试（首次 `/browser` 连接时需在 60 秒内点击 Chrome 弹窗中的 **Allow**）。
+- **`chrome-devtools-plugin` 必须配套 `chrome-devtools-mcp` 按需使用**：
+  - 官方 Marketplace 中的 `chrome-devtools-plugin` **仅包含 6 个调试 Skills，本身不自带任何 MCP Server**。绝不要以为单开它就能操控浏览器；
+  - 只有需要 **LCP Trace 性能剖析、Heap Snapshot 堆内存快照、CSS 层叠计算排查**，或需要**持久化独立测试 Chrome Profile 登录态**时，才按 [`templates/mcp-configs.example.json`](./templates/mcp-configs.example.json) 配置 `chrome-devtools-mcp`（示例中的 `chrome-devtools-isolated`）并与 `chrome-devtools-plugin` 配合使用。
+  - Antigravity 会将 MCP 工具注册为 **Lazy tools（懒加载工具）**：初始系统提示词中只注入工具名称列表，完整 JSON Schema 在模型实际调用时才按需读取。平时依然建议关闭 `chrome-devtools-isolated`，核心目的是**避免与内置 `browser` subagent 产生浏览器工具路由重叠与二选一抖动**。
+- **`frontend-design` 的真实来源**：它是自定义 / 从旧机迁移的 `SKILL.md` 插件，**并非官方 Marketplace 插件**。全新电脑在 Marketplace 中搜不到它，需自行迁入个人沉淀的 `SKILL.md` 或新建对应 Skill。
+- **`codegraph` 需走完「CLI + 索引 + MCP」三步闭环**：
+  1. 在本机安装 `codegraph` CLI；
+  2. 在目标大型代码仓根目录生成 `.codegraph/` 索引；
+  3. 在 `~/.gemini/config/mcp_config.json` 中配置 `codegraph` MCP（见 [`templates/mcp-configs.example.json`](./templates/mcp-configs.example.json)）。
+  - **Windows 升级提醒**：在 Windows 上升级 `codegraph` 二进制前，必须先停止所有运行中的 `codegraph` MCP 进程，避免原生模块 `kernel.node` 因文件占用锁导致升级失败。
+
+### 5. 仓库规则下沉与渐进式分片（厘清累加语义与扫描边界）
+
+- **核心纠偏：Rules 是「累加合并（Cumulative）」，不是「覆盖（Override）」**
+  - **Skills 与 Custom Agents** 才按优先级覆盖（工作区个人目录 / 从 CWD 向上至 `.git` 的 `.agents/` > 工作区 `skills.json` / `plugins.json` > 全局 `~/.gemini/config/` > 内置 > 全局 JSON 配置）。另注意：**`agy` CLI 还会以最高用户级优先级读取 `~/.gemini/antigravity-cli/skills/` 与 `~/.gemini/skills/`，而桌面 App 不会扫描这两个路径**，因此跨端共享的个人技能务必统一放在 `~/.gemini/config/skills/` 或插件内。
+  - **Rules** 会将插件规则、全局规则与仓库规则**同时累加注入上下文**（仅按真实路径去重），项目 `AGENTS.md` **不会**覆盖掉全局规则里的矛盾指令。因此全局 `personal-core/rules/AGENTS.md` 绝不写具体技术栈默认项，技术栈与命令全部下沉到各项目根目录 `AGENTS.md`。
+- **官方长度与预算硬上限**：
+  - 单文件上限 **`24,000 bytes`**（展开 `@[label]` 内嵌文件引用后按行边界截断），仓库根 `AGENTS.md` 建议控制在 **`<= 20 KB`**；
+  - 全局规则与 `always_on` 规则共享 **`20,000 tokens`** 聚合预算（超出预算的文件会降级为文件路径指针，由模型按需自行读取；仅内置插件豁免）。
+- **发现与扫描边界**：
+  - Antigravity 从当前工作区目录（CWD）**向上遍历至仓库根目录（`.git`）**加载规则与 `.agents/`，**绝不会向下钻取子目录**（例如打开 Monorepo 根目录时，不会自动加载 `packages/web/AGENTS.md`）；
+  - `.agents/rules/` 与 `.agents/skills/` 默认只扫描**一层深（one level deep）**，嵌套子目录需通过 `.agents/rules.json` / `.agents/skills.json` 显式列出。
+- **渐进式分片实践**：
+  - 从 [`templates/project-AGENTS.md`](./templates/project-AGENTS.md) 复制一份到新项目根目录（不希望推到远端时可写入 `.git/info/exclude` 本地隔离）；
+  - 当专项规范增多时，拆入 `.agents/rules/<topic>.md`，使用 `trigger: glob`（搭配带引号的逗号分隔字符串 `globs`）或 `trigger: model_decision`，详见 [`templates/glob-rule-example.md`](./templates/glob-rule-example.md)。注意：**缺少 YAML frontmatter、误用驼峰触发器（如 `alwaysOn` / `modelDecision`）或把 `globs` 写成 YAML 数组，会导致规则被静默丢弃**。
 
 ---
 
-## 二、可直接复制的纯净版配置模板（零副作用）
+## 二、仓库内置模板与插件结构说明
 
-### 1. 插件目录结构
+### 1. `personal-core` 插件（v1.1.0）
 
-放置路径：`~/.gemini/config/plugins/personal-core/`
+位于 `plugins/personal-core/`，结构精简、零环境硬编码：
 
 ```text
-~/.gemini/config/plugins/personal-core/
-├── plugin.json       # 必需：插件元数据与全局唯一标识
-├── README.md         # 可选：给开发者看的说明（不会进入 Agent 上下文）
-├── rules/
-│   └── AGENTS.md     # 核心：纯 Markdown，无 YAML frontmatter，启用插件即常驻生效
-└── skills/           # 可选：按需存放个人工作流技能或筛选后的个人项目记忆技能
+plugins/personal-core/
+├── plugin.json       # v1.1.0 清单（含 $schema 与 logo: assets/logo.svg）
+├── README.md         # 组件清单与 3 种安装方式
+├── assets/
+│   └── logo.svg      # 128×128 矢量图标（满足 agy plugin validate --strict 零提示）
+└── rules/
+    └── AGENTS.md     # 纯 Markdown（无 frontmatter，约 3 KB），启用插件即常驻生效
 ```
 
-### 2. `plugin.json` 模板
+[`plugins/personal-core/rules/AGENTS.md`](./plugins/personal-core/rules/AGENTS.md) 仅约束跨项目通用准则，分为 4 部分：
+1. **身份、语言与沟通方式**：全场景简体中文回复、可选本地个人背景槽位（附防泄密提醒）、低打扰假设推进与三类高风险停顿边界；
+2. **工程与交付纪律**：轻量 SDD（多文件先对齐方案再执行、单文件直接改、长文档先骨架后填肉）、先核实仓内先例与生效 UI 渲染路径、测试失败追根因、保留原文件编码与 LF/CRLF、工具单一职责（`git`/`gh`、内置 `browser` subagent、`codegraph_explore`）；
+3. **通用中文文案规范**：改前先指错、术语对齐界面标准、杜绝翻译腔、数值与校验口径严格对齐源码常量；
+4. **四层知识分流与沉淀三门禁**：原生兼容 `/learn` 与项目记忆目录（无任何外部 Python 归档脚本依赖），明确区分实时源码、仓根/分片规则、按需 Skill 与隐蔽业务/环境坑点，并保留「三不写、先查后写合并优先、显式报备」三门禁。
 
-```json
-{
-  "name": "personal-core",
-  "displayName": "Personal Core Rules",
-  "version": "1.0.0",
-  "description": "跨项目通用协作原则、工程纪律、中文文案规范与四通道知识治理门禁（纯净跨平台版）。",
-  "suggestedPrompts": [
-    "按轻量 SDD 先出改动方案与验证步骤",
-    "检查本次改动前是否已核对仓内先例与生效渲染路径",
-    "将本次沉淀的可复用项目结论按门禁写入记忆库"
-  ]
-}
-```
+### 2. `templates/` 配套模板清单
 
-### 3. 纯净版 `rules/AGENTS.md` 完整模板
-
-以下模板约 3～4 KB，完全去除了旧机代理地址、本机工具路径和旧公司业务路由，可直接作为新机的全局规则全文使用：
-
-````markdown
-# 全局协作规范与知识治理
-
-本规则随 `personal-core` 插件启用，仅约束跨项目通用协作方式、工程纪律与知识沉淀口径；具体项目的技术栈、命令与业务边界以所在工作区根目录的 `AGENTS.md` 为准。
-
----
-
-## 1. 身份、语言与沟通方式
-
-- **始终使用简体中文回复**（所有项目、所有场景均如此）。
-- **个人背景边界（本地按需补充）**：可在此写明你的所在地区、业务范围或默认免追问的前提条件，避免模型每次套用错误默认假设。
-- **少追问、带假设推进**：能自行查证或按常识定夺的事直接带假设往下做。仅在以下三类情况才停下来请用户拍板：
-  1. 决策偏差会导致明显做废工作；
-  2. 需求超出当前范围，涉及跨仓改动或架构升级（需明确列出 scope delta）；
-  3. 涉及线上高风险或不可逆变更（正式发布部署、新建线上云资源、删库或远程数据库迁移）。
-
----
-
-## 2. 工程与交付纪律
-
-- **轻量 SDD（先对齐方案，再一路执行）**：
-  - 跨多文件的复杂功能先出简要计划或 spec（落到项目 `specs/`），用户批准后连续推进至验证收尾；
-  - 单文件小改直接动手完成，不堆砌形式主义流程；
-  - 编写长文档时先搭完整骨架，再逐节填充细节。
-- **先核实后动手、先复核后汇报**：
-  - 修改代码前先查清仓内已有 canonical 先例与约定模式，优先复用现有抽象；
-  - 修改 UI 逻辑前，必须先确认目标组件或文件确实处在生效渲染路径上；
-  - 测试或构建失败时严禁一句「非本方案引起」一笔带过，必须查明并说明真实根因。
-- **跨平台编码与换行保护**：
-  - 编辑已有文件时，严格保留原文件的换行风格（LF / CRLF）与文件编码（禁止无故剥离 UTF-8 BOM）。
-- **工具选用单一职责**：
-  - 优先复用现成的本机 CLI（如 Git / GitHub CLI `gh`）与 Antigravity 原生能力（如内置 `browser` subagent 处理实时网页查看与 UI 交互）；
-  - 仅当当前仓库存在 `.codegraph/` 索引目录时，优先调用 `codegraph` 追踪符号定义、调用链与影响面。
-
----
-
-## 3. 通用文案规范（写给人看的字）
-
-1. **改前先指错**：修改已有界面或文档文案前，先指出原句问题（规则错误、丢失信息、读不通顺、事实过期），说不出具体问题就不按个人口味随意重写。
-2. **用词统一**：专业术语与交互按钮名称向界面及行业常用词靠拢，不自造生词。
-3. **风格服务目的**：自然简洁不等于禁止准确书面词，但必须杜绝翻译腔（如用「它」代指人、硬凑主语、直译英文词条）。
-4. **事实对齐代码**：文案中涉及的数量限制、校验规则与实际行为，必须对照代码常量与真实逻辑编写，不得凭记忆估算。
-
----
-
-## 4. 四通道知识分工与记忆写回门禁
-
-### 四通道分工
-
-| 知识类型 | 唯一存放位置 | 读取与维护方式 |
-| --- | --- | --- |
-| 代码结构、符号定义与调用链 | 实时源码 / CodeGraph | 现查现用，不靠历史记忆背诵 |
-| 仓库架构红线、构建与测试命令 | 仓库根目录 `AGENTS.md` | 控制在 ≤ 20 KB，随代码库维护 |
-| 隐蔽业务口径、历史设计原因、外部坑点 | 项目记忆库（如有） | 按需精准检索，遵守下方写回三门禁 |
-| 跨项目通用习惯纠偏与工作流 | 全局 `AGENTS.md` 或 `/learn` | 保持精简，避免膨胀 |
-
-### 记忆写回三门禁（仅沉淀可长期复用的高价值结论）
-
-1. **三不写**：
-   - 不写读源码或查 CodeGraph 即可直接确认的纯实现细节、易变行号；
-   - 不写一次性单号/流水、瞬时数据库或开关状态、待提交或待发布清单；
-   - **严禁写入任何明文密码、API Key、Token 或私钥**。
-2. **先查后写、合并优先**：
-   - 写入前先检索是否已有同类专题；有覆盖则原地更新纠偏，无匹配才新建精简专题 `.md`（含 YAML frontmatter `name` / `description` / `type`，只记结论、原因与入口符号）并同步更新索引行。
-3. **显式报备**：
-   - 每次新增或更新记忆后，在回复末尾用一行说明改动的文件路径与核心结论，方便随时审阅或叫停。
-````
-
-### 4. 配套：项目根目录 `AGENTS.md` 精简骨架模板
-
-每个具体项目在自己仓库根目录放一份，单文件控制在 20 KB 以内，把与项目强绑定的命令和红线都放在这里：
-
-```markdown
-# <项目名称> 开发规范
-
-## 技术栈与常用命令
-- 包管理 / 运行时：<如 pnpm / uv / dotnet>
-- 本地启动：<dev 命令>
-- 校验命令：<lint / typecheck / test / e2e 命令>
-
-## 目录结构与架构红线
-- 入口与核心模块：<说明主要目录职责>
-- 不变量与禁忌：<不可破坏的数据约束、前后端契约、回滚底线>
-
-## 联测与发布约束
-- 本地联测方式：<测试账号、端口、预检查方式>
-- 高风险操作：<远程迁移、生产发布、新建云资源前须经人工确认>
-- 版本库规则：<Git 分支/提交规范，或是否使用特定忽略清单>
-```
+- [`templates/project-AGENTS.md`](./templates/project-AGENTS.md)：项目根目录 `AGENTS.md` 骨架，涵盖技术栈命令、模块边界与不变量、联测与高风险确认、VCS 规范，并内附 24,000 bytes 上限、累加合并原则与向上扫描说明。
+- [`templates/glob-rule-example.md`](./templates/glob-rule-example.md)：`.agents/rules/<topic>.md` 范例，演示合法的 `snake_case` frontmatter（`trigger: glob` 搭配 `"*.sql, db/migrations/*.ts"`，附 `model_decision` 与 `manual` 对照示例）。
+- [`templates/plugins.json`](./templates/plugins.json)：面向 `~/.gemini/config/plugins.json` 的 Git 免拷贝同步模板（示例绝对路径结构，使用前替换为本机实际路径）。
+- [`templates/mcp-configs.example.json`](./templates/mcp-configs.example.json)：按需挂载的 `codegraph` 与 `chrome-devtools-isolated`（含 `"NPM_CONFIG_LOGLEVEL": "error"`）示例片段，合并到 `~/.gemini/config/mcp_config.json` 即可。
 
 ---
 
 ## 三、插件与工具链选型矩阵
 
-| 插件 / 能力 | 获取方式 | 何时启用 | 上下文开销 | 核心价值与分工定位 |
+| 插件 / 能力 | 获取方式 | 何时启用 | 工具加载与上下文特性 | 核心价值与分工定位 |
 | --- | --- | --- | --- | --- |
-| `personal-core` | 自建插件（模板见上） | **始终启用** | 极低（规则 ≤ 5 KB） | 固化个人沟通风格、工程纪律、文案标准与知识治理门禁 |
-| `context7` | 官方 Marketplace | **强烈推荐常驻** | 极低（懒加载工具 + 按需 Skill） | 实时拉取最新框架/SDK 文档与代码示例，专治版本 API 幻觉 |
-| `frontend-design` | 自建 Skill 插件（迁自旧机） | **做前端/产品 UI 时常驻** | 几乎为零（渐进披露，触发才加载） | 提供高审美前端视觉方向与微文案准则，避免 AI 模板化界面 |
-| `chrome-devtools-plugin` | 官方 Marketplace | **做 Web 联测与性能排查时启用** | 极低（按需 Skill） | 辅助 Chrome DevTools 排查 LCP、内存泄漏、a11y 与 Cookie 状态 |
-| `codegraph` | 独立 MCP 插件 | **仅维护建有 `.codegraph/` 的大仓时启用** | 极低（单核心工具） | 追踪复杂仓库符号关系、调用链与重构影响面，减少盲搜文件 |
+| `personal-core` | 本仓自建插件（[`plugin.json`](./plugins/personal-core/plugin.json)） | **始终启用** | 常驻纯规则（`< 4 KB`） | 固化个人沟通风格、工程纪律、文案标准与四层知识分流门禁 |
+| `context7` | 官方 Marketplace | **强烈推荐常驻** | Lazy 工具 + 按需 Skill | 实时拉取最新框架/SDK 文档与代码示例，专治版本 API 幻觉 |
+| `frontend-design` | 自建 / 旧机迁入 `SKILL.md`（**非 Marketplace**） | **做前端/产品 UI 时常驻** | 渐进披露（触发才读全文） | 提供高审美视觉方向与微文案准则，避免模板化界面 |
+| `chrome-devtools-plugin` + `chrome-devtools-mcp` | 官方 Marketplace（6 个 Skills）+ [`mcp-configs.example.json`](./templates/mcp-configs.example.json) | **仅做深度性能/内存/CSS 排查或需独立持久化测试 Profile 时启用** | Skills 渐进披露 + MCP Lazy 工具 | 排查 LCP Trace、Heap Snapshot、CSS 层叠或维持独立测试浏览器登录态 |
+| `codegraph` | `codegraph` CLI + `.codegraph/` 索引 + MCP | **仅维护已建索引的中大型仓库时启用** | MCP Lazy 工具 | 追踪复杂仓库符号关系、调用链与重构影响面，减少盲搜文件 |
+| `swarm` | 内置插件（**Customizations > Installed** 开启） | **需要多 Agent 并行拆解任务时开启** | 内置协同能力（默认禁用） | 编排多 Agent 并行研发、评审与验证 |
 
 > [!TIP]
 > **明确不建议默认挂载的冗余项**：
-> - **不挂 GitHub MCP**：日常操作直接用本机 `gh` CLI，更稳定且省工具槽位。
-> - **不挂独立 Playwright MCP**：实时看页面、点交互走 Antigravity 内置 `browser` subagent；自动化回归直接运行项目自带的 E2E 脚本。
-> - **默认不挂手工 `chrome-devtools-isolated` MCP**：该配置会一次性挂载 30 多个浏览器工具定义；在新电脑上先以内置 `browser` subagent 为主，只有遇到必须“持久化独立测试登录态且免去手动授权点击”的场景时，再按需临时开启。
+> - **不挂 GitHub MCP**：日常操作直接用本机 `gh` CLI，更稳定且不和本地 Git/CLI 抢工具路由。
+> - **不挂独立 Playwright MCP**：实时看页面、点交互优先走内置 `browser` subagent；自动化回归直接运行项目自带的 E2E 脚本。
+> - **默认不挂 `chrome-devtools-isolated` MCP**：虽然 Antigravity 对 MCP 采用 Lazy tools 懒加载（首轮仅注入工具名，不会瞬间塞满 Schema），但默认保持关闭能**彻底避免与内置 `browser` subagent 发生浏览器工具路由重叠**，只在真正需要 DevTools 深度剖析或独立测试 Profile 时临时开启。
 
 ---
 
 ## 四、旧电脑资产迁移红黑榜
 
-### 1. 白名单（直接带走或在新机重装最新版）
+### 1. 白名单（带走纯净骨架或在新机重装最新版）
 
-- 本文第二节整理好的**纯净版 `personal-core` 规则骨架**；
-- `frontend-design` 插件目录（纯设计方法论 Skill，零环境绑定）；
-- 新电脑上仍会继续开发维护的**个人项目**仓内 `AGENTS.md` 与经过筛选的项目记忆；
-- 通过官方 Marketplace 在新机重新安装的 `context7`、`chrome-devtools-plugin`。
+- 本仓库整理好的纯净版 [`plugins/personal-core/`](./plugins/personal-core/README.md) 与 `templates/`；
+- 个人自建/沉淀的 `frontend-design` 等纯方法论 `SKILL.md`（零本机路径绑定）；
+- 新机仍继续维护的**个人项目**仓内 `AGENTS.md`、`.agents/rules/` 与筛选过的高价值项目记忆；
+- 在新机官方 Marketplace 全新安装的 `context7`、`chrome-devtools-plugin`（按需再配 `chrome-devtools-mcp`）。
 
-### 2. 黄名单（必须清洗去硬编码后再决定是否带走）
+### 2. 黄名单（清洗去硬编码后再决定是否带走）
 
-- **自定义记忆检索脚本（如有沿用需要）**：
-  - 必须剔除硬编码盘符、用户名路径（如 `C:\Users\<username>\...`、`D:\Workspace\...` 这类带用户名和盘符的绝对路径）与特定平台命令（如写死单系统 Python 启动器）；
-  - 改为基于脚本自身 `__file__` 相对路径与 `Path.home()` 动态定位目录，并同时兼容跨平台 Python 启动方式。
+- **自定义辅助脚本 / 检索工具（如有沿用需要）**：
+  - 必须剔除硬编码盘符、用户名路径与单平台专属命令；
+  - 改用基于脚本自身 `__file__` 的相对路径与 `Path.home()` 动态定位目录，并处理跨平台兼容性。
 
-### 3. 黑名单（坚决不迁，迁了必产生负面作用）
+### 3. 黑名单（坚决不迁，迁了必产生副作用）
 
-1. **旧机 `~/.gemini/antigravity/` 整个运行态目录**：包含 `conversations/`、`cache/`、`plugin_data/`、`antigravity_state.pbtxt`、`installation_id`，跨机拷贝极易导致状态损坏与幽灵异常。
-2. **旧机代理与网络特调规则**：如旧机特定的内网代理（`192.168.x.x` 代理）、本地代理端口、WSL2 宿主机 LAN IP 转发与域名直连补丁；在网络顺畅的新电脑上，这些全都是虚假先验，一旦网络稍有波动就会把 Agent 引向不存在的代理链路瞎排查。
-3. **旧机单平台环境专属补丁**：如“强制禁用 `python`/`python3` 只准用特定启动器”、“写死编辑器绝对路径装插件”、“为绕过旧版 Node 版本管理工具 shim 而写死的壳层包装”。换到环境干净的 Windows 或 macOS/Linux 上，反而会直接报找不到命令。
-4. **新机不再维护的旧公司项目路由表、专属 VCS 规定与历史交接快照**：把已经不碰的旧业务路由、一次性交接文件和庞大历史记忆全塞在新机上，只会白烧上下文、稀释注意力，甚至让模型把旧公司约束误套用到你的新项目里。
+1. **旧机 `~/.gemini/antigravity/` 整个运行态目录**：包含 `conversations/`、`cache/`、`plugin_data/`、`antigravity_state.pbtxt`、`installation_id`，跨机拷贝极易损坏状态并触发幽灵异常。
+2. **旧机代理与网络特调规则**：如旧机特定内网代理地址、WSL2 宿主机转发或域名直连补丁；在网络顺畅的新电脑上，这些全都是虚假先验，一旦遇到网络抖动就会误导排查方向。
+3. **旧机单平台环境专属补丁**：如针对旧版特定系统路径或旧版本管理工具写死的壳层包装与强制替换规则，换到干净新环境后会直接报找不到命令。
+4. **不再维护的旧项目路由表、专属 VCS 规定与一次性交接快照**：把不碰的旧业务规则与历史流水塞进新机只会白烧上下文、稀释注意力，甚至串台污染新项目。
 
 ---
 
-## 五、实测避坑指南（8 条高价值反模式）
+## 五、实测避坑指南（9 条高价值反模式）
 
-1. **全局 `AGENTS.md` 越写越胖**
-   - **坑的表现**：把项目规范、环境命令、临时备忘全往全局规则里堆。
-   - **为什么伤体验**：每轮对话都会无条件注入系统上下文，指令越多，模型对每条指令的注意力越被稀释。
-   - **正确做法**：全局规则严控在 **≤ 5 KB**，项目规范下沉到仓根 `AGENTS.md`（≤ 20 KB），多步骤操作流程封装为按需触发的 Skill。
+1. **全局 `AGENTS.md` 越写越胖，或写入与仓库打架的技术栈规则**
+   - **坑的表现**：把包管理偏好、框架约定、临时备忘全往全局规则里堆。
+   - **原因与机制**：Rules 采用**累加合并**（非覆盖），每轮对话都会注入；单文件硬上限 `24,000 bytes`，所有常驻/全局规则共享 `20,000 tokens` 总预算，超限后文件会被降级为路径指针，同时互相矛盾的规则会让模型无所适从。
+   - **正确做法**：全局 `personal-core/rules/AGENTS.md` 严控在 **`< 4 KB`** 且保持技术栈无关；项目规范下沉到仓根 `AGENTS.md`（`<= 20 KB`），专项规范拆进 `.agents/rules/`。
 
-2. **整包复制 `~/.gemini/antigravity/` 或保留旧版残留文件**
-   - **坑的表现**：换机时把整个用户目录打包覆盖过去，图省事省登录。
-   - **为什么伤体验**：运行态数据库、安装 ID、锁文件与插件缓存混在一起，容易出现工具注册异常、状态不同步或莫名报错。
-   - **正确做法**：新机永远全新安装 Antigravity，只迁移 `~/.gemini/config/plugins/` 下干净的插件源码。
+2. **规则放错目录、漏写 frontmatter 或用错驼峰触发器导致静默失效**
+   - **坑的表现**：在 Monorepo 根目录开会话却指望 `packages/web/AGENTS.md` 生效；或 `.agents/rules/*.md` 写了 `alwaysOn: true`、`modelDecision` 却从不被触发。
+   - **原因与机制**：Antigravity 只从 CWD **向上**扫描至 `.git` 根（绝不向下钻取子目录），`.agents/rules/` 与 `.agents/skills/` 默认只扫**一层深**；分片规则缺少 frontmatter、使用驼峰命名，或 `globs` 格式非法（如未加引号的 `*` 开头模式或写成 YAML 数组）均会被**静默丢弃**。另外 `agy` CLI 会优先读 `~/.gemini/antigravity-cli/skills/` 与 `~/.gemini/skills/`，App 则不会。
+   - **正确做法**：分片规则严格套用 [`templates/glob-rule-example.md`](./templates/glob-rule-example.md) 的 `snake_case` 格式；跨端个人技能统一放在 `~/.gemini/config/skills/` 或个人插件内。
 
-3. **运行期手工修改 `~/.gemini/config/config.json`**
-   - **坑的表现**：直接用文本编辑器去改全局 `config.json` 开关插件或调整权限。
-   - **为什么伤体验**：Antigravity 的 Language Server 有内置状态管理与热重载机制，手改文件既不会触发即时生效，还可能直接覆盖并发写入的权限配置。
-   - **正确做法**：插件启用/禁用与权限预设全部在 Antigravity UI 内操作。
+3. **整包复制 `~/.gemini/antigravity/` 或保留旧版残留文件**
+   - **坑的表现**：换机时把整个目录打包覆盖过去以图省去重新登录。
+   - **原因与机制**：运行态数据库、安装 ID、锁文件与插件缓存混杂，跨机极易出现工具注册缺失或状态不同步。
+   - **正确做法**：新机全新安装 Antigravity，只同步干净的插件源码与规则模板。
 
-4. **自定义插件的 `name` 与其他插件全局撞车**
-   - **坑的表现**：新建插件时随手起了和官方或已有插件相同的 `name`。
-   - **为什么伤体验**：所有插件共享全局命名空间，一旦 `name` 冲突，先发现的插件会覆盖后者，被覆盖的插件会被**静默丢弃且无明显报错**。
-   - **正确做法**：`plugin.json` 中的 `name` 使用明确的小写 kebab-case（例如 `personal-core`），创建前先确认现有插件清单不重名。
+4. **运行期手工修改 `config.json`，或在 `plugins.json` 中使用 `~`**
+   - **坑的表现**：直接手改 `~/.gemini/config/config.json` 开关插件或改权限；或在 `~/.gemini/config/plugins.json` 里写 `"~/dotfiles/..."` 后发现插件未加载。
+   - **原因与机制**：手改 `config.json` 会绕过 Language Server 热重载并可能覆盖并发写入的 `userSettings` / 权限授权；而 `plugins.json` **不会自动展开 `~`**。
+   - **正确做法**：开关插件与权限统一走 UI 或 `agy plugin enable/disable`；`plugins.json` 的 `entries[].path` 一律填写完整绝对路径。
 
-5. **同类工具多层叠加（MCP + CLI + 原生能力三路打架）**
-   - **坑的表现**：同时开着 GitHub MCP、Playwright MCP、手工 DevTools MCP，外加原生浏览器和本地 CLI。
-   - **为什么伤体验**：工具定义列表迅速膨胀，模型不仅会多耗上下文，还容易在等价工具间反复试错。
-   - **正确做法**：坚持**一类能力保留最优一路**（GitHub 走 `gh` CLI，实时网页走内置 `browser` subagent，E2E 跑项目自带脚本）。
+5. **插件 `name`、安装目录 `dir` 与 MCP Server 键名全局撞车**
+   - **坑的表现**：自建插件与已有插件共用 `name`；聊天链接或配置按 `name` 去找目录结果失效；插件里的 MCP Server 用了 `search`、`db` 这类通用键名。
+   - **原因与机制**：`plugin.json` 的 `name` 共享全局插件命名空间，撞车时后者被**静默丢弃**；而 `config.json` 的启用状态与 `customization://<dir>` 链接实际以**安装目录名 `dir`** 为键；同时**用户 `mcp_config.json` 与所有已启用插件的 MCP Server 键名也共享同一个全局命名空间**。
+   - **正确做法**：`name` 与目录名保持统一且唯一的小写 kebab-case；插件内置的 MCP Server 键名统一加上 `<plugin-name>-` 前缀。
 
-6. **规则或辅助脚本里写死绝对路径和单平台命令**
-   - **坑的表现**：在 `SKILL.md` 或配套脚本里写死带盘符、用户名的绝对路径或单系统专属调用方式。
-   - **为什么伤体验**：只要换电脑、换用户名或跨系统（Windows ↔ macOS），规则和脚本立刻变成死链。
-   - **正确做法**：脚本内部统一用 `__file__` 相对路径与 `Path.home()`，规则文案里只写逻辑相对路径（如 `~/.gemini/config/...`）。
+6. **单装 `chrome-devtools-plugin` 以为自带 MCP，或升级 `codegraph` 遭遇 Windows 文件锁**
+   - **坑的表现**：只从 Marketplace 装了 `chrome-devtools-plugin`，结果没有浏览器控制工具；或在 Windows 上直接升级 `codegraph` 报错失败。
+   - **原因与机制**：`chrome-devtools-plugin` 仅含 6 个调试 Skills、不含 MCP Server；Windows 上正在运行的 `codegraph` MCP 进程会锁定原生模块 `kernel.node`。
+   - **正确做法**：需要 DevTools 深度操控时按 [`templates/mcp-configs.example.json`](./templates/mcp-configs.example.json) 配好 `chrome-devtools-mcp` 再启用对应插件；Windows 升级 `codegraph` 前先停掉所有 `codegraph` MCP 进程。
 
-7. **记忆只写不治，演变成“过时幻觉源”**
-   - **坑的表现**：把源码细节、精确行号、临时开关状态和一次性单号都记进记忆文件，后续代码一改就失效。
-   - **为什么伤体验**：Agent 信任记忆里的旧事实，反而不去读最新源码，导致按过期结论改错代码。
-   - **正确做法**：从第一天严守**三不写 + 先查后写合并优先**，定期归档或删除已完成的一次性计划与交接快照。
+7. **把 `AGENTS.md` 当硬性安全兜底，或在 `Turbo` 档继续折腾旧内部键名**
+   - **坑的表现**：开了 `Turbo` 档却只在 `AGENTS.md` 里写“禁止删库/禁止改 SSH 密钥”，或额外去改 `EAGER` / `ALLOW`。
+   - **原因与机制**：`AGENTS.md` 只是软性提示词约束；`Turbo` 本身已关闭沙箱并全量放行命令/文件/MCP/Web，手改内部键名纯属冗余且容易污染配置。
+   - **正确做法**：日常推荐用 `Auto` 档（带沙箱）；若确实启用 `Turbo`，务必配合高优先级的 **`Deny > Ask > Allow`** 权限规则（如 `Deny: write_file(~/.ssh)`、`Deny: command(rm -rf)`、`Ask: command(git push --force)`）和/或 `PreToolUse` `hooks.json` 做硬拦截。
 
-8. **stdio 型 MCP 被包管理器杂音日志打坏 / 代理长连超时被掐**
-   - **坑的表现**：通过 `npx` 启动的本地 MCP 偶尔握手失败；或经过代理时跑长推理/长命令约 30 秒突然断流。
-   - **为什么伤体验**：包管理器的升级提示或配置文件警告若输出到 stdout，会直接破坏 MCP 的 JSON-RPC 通信；代理过短的 `read_timeout` 则会让长任务频繁中断重试。
-   - **正确做法**：只要配置了 `npx` 驱动的 stdio MCP，顺手在 `env` 中加静默参数（如 `"NPM_CONFIG_LOGLEVEL": "error"`）；新机若需经过任何网络代理，确认其空闲读超时设置足够宽裕（建议 ≥ 10～15 分钟）。
+8. **stdio 型 MCP 被 `npx` 日志打坏、Windows `nvm4w` 启动失败或代理超时**
+   - **坑的表现**：`npx` 驱动的 MCP 握手报错；Windows 使用 `nvm-windows`（`nvm4w`）时 MCP 无法直接拉起 `npx`；或经过受控代理跑长任务中途断流。
+   - **原因与机制**：包管理器的提示日志若打到 stdout 会破坏 MCP JSON-RPC 通信；部分 Windows `nvm4w` 环境下直接 spawn `npx` 会找不到 `.cmd` shim。此外（**仅当你处于受控代理环境时参考**）：`agy` Go 原生二进制读取 `HTTPS_PROXY` / `HTTP_PROXY`（IDE 读取 `http.proxy`），**不会读取 Windows WinINet 系统代理**，且代理过短的读超时会切断长连接。
+   - **正确做法**：`npx` 型 stdio MCP 在 `env` 中加 `"NPM_CONFIG_LOGLEVEL": "error"`；Windows `nvm4w` 环境若直调 `npx` 失败，改用 `"command": "cmd", "args": ["/c", "npx", "-y", ...]`；若必须走代理，确保正确设置环境变量并把代理 `read_timeout` 调至 **≥ 15 分钟**。
+
+9. **记忆/规则只写不治沦为“过时幻觉源”，或脚本写死本机路径**
+   - **坑的表现**：把易变行号、临时开关状态、一次性单号记进持久化记忆，或在 `SKILL.md` / 脚本里写死某台电脑的绝对路径。
+   - **原因与机制**：Agent 信任过期记忆而不核对最新源码，会导致按旧逻辑改错代码；绝对路径则让配置在跨机时立即失效。
+   - **正确做法**：严守「三不写 + 先查后写合并优先 + 显式报备」三门禁，定期清理过时条目；脚本统一基于 `__file__` 与 `Path.home()` 定位目录。
 
 ---
 
@@ -264,25 +241,30 @@ flowchart TD
 
 ### 1. 用 Git 仓库跨机同步个人插件层
 
-脱敏后的通用规则和模板（如本仓库的 `plugins/personal-core/`）可放在公开仓库中，在新电脑随时拉取；一旦在本地填入了个人隐私、地区背景或项目记忆，建议改用**私有 Git 仓库**或仅在本地单独维护，软链或放到 `~/.gemini/config/plugins/` 下，以后每次调整只需要提交推送，另一台电脑 `git pull` 即可同步。
+脱敏后的通用规则和模板（如本仓库的 [`plugins/personal-core/README.md`](./plugins/personal-core/README.md)）适合放在公开仓库中管理：按上文「3. 部署纯净版 `personal-core` 插件」中的 `plugins.json`（填写完整绝对路径）或目录链接（`ln -s` / Windows `mklink /J`）挂接本地克隆仓后，日后在多台电脑之间只需执行 `git pull` 即可同步更新，无需重复拷贝或覆盖目录。
 
-### 2. 新经验沉淀决策表（应该往哪放）
+若需在规则或技能中填入个人地区背景、专属环境前提或项目私有记忆，请另建**私有 Git 仓库**或在本地未跟踪文件中维护，切勿提交密钥或敏感上下文到公开仓。
 
-| 你刚发现的新经验类型 | 应该写入哪里 | 理由 |
+### 2. 四层知识分流沉淀决策表（应该往哪放）
+
+| 你刚发现的新经验类型 | 唯一正确去处 | 理由 |
 | --- | --- | --- |
-| 只在当前任务用一次的临时要求 | **不写入任何持久化配置** | 避免一次性指令污染后续对话 |
-| 某项目的构建命令、模块边界或架构禁忌 | **该项目根目录 `AGENTS.md`** | 仅在该工作区生效，不拖累其他项目 |
-| 某项目隐蔽的业务规则或历史设计坑点 | **该项目专属记忆库（遵守三门禁）** | 保持 `AGENTS.md` 精简，按需检索调阅 |
-| 多步骤、可重复执行的专业工作流（如发版、联测套路） | **封装成独立 `SKILL.md`** | 利用渐进披露机制，平时不占正文上下文 |
-| 跨所有项目都希望遵守的个人沟通或工程偏好 | **全局 `personal-core/rules/AGENTS.md` 或 `/learn`** | 保持最小集，高确定性全局生效 |
+| 仅当前任务有效的临时要求 | **不写入任何持久化配置** | 避免一次性指令污染后续对话 |
+| 代码结构、符号定义与调用链 | **实时源码 / `codegraph_explore`（不写进规则）** | 代码随时在变，现查现用最准确 |
+| 某项目的构建命令、模块边界与架构禁忌 | **仓根 `AGENTS.md`（`<= 20 KB`）或 `.agents/rules/<topic>.md`** | 仅在目标工作区/命中文件时加载，不拖累全局 |
+| 多步骤、可重复执行的专业工作流 | **`.agents/skills/<name>/SKILL.md` 或 `~/.gemini/config/skills/`** | 利用渐进披露机制，平时仅暴露名称与描述 |
+| 隐蔽业务规则、环境坑点或跨会话习惯纠偏 | **执行 `/learn`（建议写入 scoped Rule/Skill）或项目指定记忆目录** | 严守三不写、合并优先与显式报备三门禁 |
+| 真正跨所有项目生效的极简通用纪律 | **`personal-core/rules/AGENTS.md`（保持 `< 4 KB`）** | 全局累加注入，必须技术栈无关且宁缺毋滥 |
 
 ### 3. 日常高频斜杠命令速查
 
 | 命令 | 适用场景 |
 | --- | --- |
-| `/plan` | 面对跨模块复杂改动，先对齐步骤与验证口径再动手 |
-| `/grill-me` | 方案关键边界没想透时，让 Agent 通过交互式追问帮你把设计决策拍实 |
-| `/learn` | 刚纠正完 Agent 的某个不当习惯或搞定复杂环境，把这条经验持久化 |
-| `/compact` | 长对话上下文变重时主动压缩摘要，恢复推理响应速度 |
-| `/boost` | 需要深度思考、多视角核验与严格自检的高难度研发任务 |
-| `/teamwork` | 体量较大、适合拆给多个自主 Agent 协同推进的复杂工程 |
+| `/plan` | 面对跨模块复杂改动，先检索代码并生成可审阅方案再动手 |
+| `/grill-me` | 方案关键边界没想透时，通过交互式追问把设计决策拍实（可与 `/plan` 联用） |
+| `/learn` | 刚纠正完某个不当习惯或解决复杂环境坑点，将经验沉淀为 Rule 或 Skill |
+| `/compact` | 长对话上下文变重时主动压缩摘要，释放窗口并保持响应质量 |
+| `/boost` | 高难度缺陷排查、竞态条件或复杂算法推理（按需启用多 Agent 深度推理） |
+| `/teamwork` | 体量较大、适合拆解给多个自主 Agent 协同推进的工程任务 |
+| `/browser` | 显式唤起浏览器交互与调试流程，验证页面渲染、控制台日志与接口行为 |
+| `/plugin` | 在对话中快捷检索、安装、启停或排查插件配置 |

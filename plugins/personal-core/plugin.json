@@ -1,11 +1,27 @@
 {
+  "$schema": "https://antigravity.google/schemas/v1/plugin.json",
   "name": "personal-core",
-  "displayName": "Personal Core Rules",
-  "version": "1.0.0",
-  "description": "跨项目通用协作原则、工程纪律、中文文案规范与四通道知识治理门禁（纯净跨平台版）。",
+  "displayName": "Personal Core",
+  "version": "1.1.0",
+  "description": "跨项目通用协作原则、轻量 SDD 交付纪律、中文文案规范与四层知识分流准则（纯净跨平台版）。",
+  "logo": "assets/logo.svg",
+  "author": {
+    "name": "finaljoke",
+    "url": "https://github.com/finaljoke"
+  },
+  "homepage": "https://github.com/finaljoke/antigravity-setup-guide",
+  "repository": "https://github.com/finaljoke/antigravity-setup-guide",
+  "license": "MIT",
+  "keywords": [
+    "rules",
+    "workflow",
+    "sdd",
+    "chinese",
+    "engineering-discipline"
+  ],
   "suggestedPrompts": [
-    "按轻量 SDD 先出改动方案与验证步骤",
-    "检查本次改动前是否已核对仓内先例与生效渲染路径",
-    "将本次沉淀的可复用项目结论按门禁写入记忆库"
+    "按轻量 SDD 先梳理本次改动的方案、影响面与验证步骤",
+    "动手修改前先核对仓内现有先例与 UI 生效渲染路径",
+    "评估本次排障或设计结论应沉淀到仓库规则、按需 Skill 还是项目记忆"
   ]
 }
