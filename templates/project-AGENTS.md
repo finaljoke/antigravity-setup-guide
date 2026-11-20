@@ -1,5 +1,5 @@
 <!--
-使用说明：复制为项目根目录 AGENTS.md（纯 Markdown，勿加 YAML frontmatter）。
+使用说明：复制为项目根目录 AGENTS.md（纯 Markdown，勿加 YAML frontmatter）。（复制为项目 AGENTS.md 后建议删去本注释块，避免每轮多占上下文）
 机制提醒：
 1. 单文件硬上限 24,000 字节（建议 ≤ 20 KB），所有常驻规则共享 20,000 tokens 预算，超限会降级为路径指针；
 2. 规则为「累加合并」而非覆盖，全局 AGENTS.md 与本项目规则会同时进入上下文，请勿在此与全局规则相互打架；

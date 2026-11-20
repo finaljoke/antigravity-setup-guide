@@ -17,6 +17,7 @@
 - [`templates/glob-rule-example.md`](./templates/glob-rule-example.md) — `.agents/rules/<topic>.md` 文件作用域与按需触发规则模板
 - [`templates/plugins.json`](./templates/plugins.json) — 供 `~/.gemini/config/plugins.json` 使用的免拷贝 Git 同步配置模板
 - [`templates/mcp-configs.example.json`](./templates/mcp-configs.example.json) — 按需启用的 `codegraph` 与 `chrome-devtools-isolated` MCP 参考配置
+- [`LICENSE`](./LICENSE) — MIT 开源协议（对应 `plugin.json` 中的 `"license": "MIT"`）
 
 ```mermaid
 flowchart TD
@@ -54,12 +55,12 @@ Antigravity Settings 提供 4 档统一的权限预设（Permission Presets）�
 | **`Auto`（推荐）** | **开启** | 沙箱内自动执行；**跳出沙箱时自动评估**，安全可逆放行、高风险仍确认 | 工作区 + 临时目录 | 询问 | **新机默认高自主推荐档** |
 | `Turbo` | 关闭 | 无限制自动执行 | **全盘文件读写** | 自动放行 | 极限全自动（必须叠加硬护栏） |
 
-- **推荐选择 `Auto` 档**：在 **Antigravity `v2.23+`（macOS / Linux）** 与 **`v2.26+`（Windows 个人账号）** 上默认可用。它默认开启 OS 原生终端沙箱（Linux `Namespaces` / macOS `sandbox-exec` / Windows 原生沙箱），沙箱内免打扰运行；遇到需联网或访问工作区外的命令时，系统自动识别安全可逆操作直接放行，危险/不可逆操作仍交由你确认。
+- **推荐选择 `Auto` 档**：在 **Antigravity `v2.23+`（macOS / Linux）** 与 **`v2.26+`（Windows 个人账号）** 上默认可用，并默认开启 OS 原生终端沙箱（Linux `Namespaces` / macOS `sandbox-exec` / Windows 基于 **Process security environments (AppContainer)**）。注意：**Windows 端沙箱要求 Windows 11 24H2 及以上版本（2026-08 更新+）**；在 Windows 10 或未达标旧版 Windows 11 上因沙箱不可用，UI 不会提供 `Auto` 档，默认预设也会回退为 `Request Review`。在受支持环境中，`Auto` 在沙箱内免打扰运行；遇到需联网或访问工作区外的命令时，系统自动评估并放行安全可逆操作，危险或不可逆操作仍交由你确认。
 - **关于 `Turbo` 档的准确边界**：`Turbo` **本身就已经**关闭沙箱、放开终端命令、授予全盘读写并自动放行 MCP 与 Web；**不需要**也**不要**再去叠加修改任何旧版或内部配置键（如 `EAGER`、`ALLOW`）。
 - **硬护栏声明（关键安全认知）**：`AGENTS.md` 只是**软性提示词约束（soft prompt constraint）**，模型在复杂上下文下仍可能误触发越权操作。如果你选用 `Turbo` 档，**必须**额外配置硬性拦截手段：
-  1. 在 Settings 中添加细粒度权限规则——所有自定义规则均按 **`Deny > Ask > Allow`** 优先级生效，**高于任何权限预设（含 `Turbo`）**，例如：`Deny: write_file(~/.ssh)`、`Deny: command(rm -rf)`、`Ask: command(git push --force)`；
+  1. 在 Settings 中添加细粒度权限规则——所有自定义规则均按 **`Deny > Ask > Allow`** 优先级生效，**高于任何权限预设（含 `Turbo`）**，例如：`Deny: write_file(/Users/<user>/.ssh)`（或 `/home/<user>/.ssh`）、`Deny: write_file(.git/)`、`Deny: command(rm -rf)`、`Ask: command(git push --force)`（注意 `read_file`/`write_file` 不支持 `~/` 展开；Windows 评估前会自动剥离盘符如 `C:` 并把 `\` 转为 `/`，因此 `/Users/<user>/.ssh` 同样匹配 Windows 用户目录）；
   2. 或在插件/项目中配置 `PreToolUse` 生命周期钩子（`hooks.json`），在工具实际执行前以脚本代码返回 `"decision": "deny"` / `"ask"` / `"force_ask"` 硬拦截。
-- **`swarm` 的正确开启位置**：`swarm` 是默认禁用的内置插件（`"disabled": true`），**不在 Permissions 设置页里**。需要多 Agent 协同推进时，前往 **Customizations > Installed** 按需开启即可（实时生效）。
+- **`swarm` 的正确开启位置**：`swarm` 是默认禁用的内置插件，**不在 Permissions 设置页里**。需要多 Agent 协同推进时，前往 **Customizations > Installed** 按需开启即可（实时生效；`/swarm` 在 Antigravity App 与 CLI 的 Pro / Ultra 套餐可用）。
 - **严禁运行期手改 `~/.gemini/config/config.json`**：所有插件开关与权限规则一律通过 UI 或 `agy plugin enable/disable` 操作。运行期手改 `config.json` 会绕过 Language Server 热重载，还可能直接覆盖并发写入中的 `userSettings` 与权限授权。
 
 ### 3. 部署纯净版 `personal-core` 插件（3 种方式任选）
@@ -100,7 +101,7 @@ Antigravity Settings 提供 4 档统一的权限预设（Permission Presets）�
 ### 5. 仓库规则下沉与渐进式分片（厘清累加语义与扫描边界）
 
 - **核心纠偏：Rules 是「累加合并（Cumulative）」，不是「覆盖（Override）」**
-  - **Skills 与 Custom Agents** 才按优先级覆盖（工作区个人目录 / 从 CWD 向上至 `.git` 的 `.agents/` > 工作区 `skills.json` / `plugins.json` > 全局 `~/.gemini/config/` > 内置 > 全局 JSON 配置）。另注意：**`agy` CLI 还会以最高用户级优先级读取 `~/.gemini/antigravity-cli/skills/` 与 `~/.gemini/skills/`，而桌面 App 不会扫描这两个路径**，因此跨端共享的个人技能务必统一放在 `~/.gemini/config/skills/` 或插件内。
+  - **Skills 与 Custom Agents** 才按优先级覆盖（仓内个人定制目录（若配置了 `.gemini/config.json` 的 `personal_customization_dir`） / 从 CWD 向上至 `.git` 的 `.agents/` > 工作区 `skills.json` / `plugins.json` > 全局 `~/.gemini/config/` > 内置 > 全局 JSON 配置）。另注意：**`agy` CLI 还会以最高用户级优先级读取 `~/.gemini/antigravity-cli/skills/` 与 `~/.gemini/skills/`，而桌面 App 不会扫描这两个路径**，因此跨端共享的个人技能务必统一放在 `~/.gemini/config/skills/` 或插件内。
   - **Rules** 会将插件规则、全局规则与仓库规则**同时累加注入上下文**（仅按真实路径去重），项目 `AGENTS.md` **不会**覆盖掉全局规则里的矛盾指令。因此全局 `personal-core/rules/AGENTS.md` 绝不写具体技术栈默认项，技术栈与命令全部下沉到各项目根目录 `AGENTS.md`。
 - **官方长度与预算硬上限**：
   - 单文件上限 **`24,000 bytes`**（展开 `@[label]` 内嵌文件引用后按行边界截断），仓库根 `AGENTS.md` 建议控制在 **`<= 20 KB`**；
@@ -223,12 +224,12 @@ plugins/personal-core/
 7. **把 `AGENTS.md` 当硬性安全兜底，或在 `Turbo` 档继续折腾旧内部键名**
    - **坑的表现**：开了 `Turbo` 档却只在 `AGENTS.md` 里写“禁止删库/禁止改 SSH 密钥”，或额外去改 `EAGER` / `ALLOW`。
    - **原因与机制**：`AGENTS.md` 只是软性提示词约束；`Turbo` 本身已关闭沙箱并全量放行命令/文件/MCP/Web，手改内部键名纯属冗余且容易污染配置。
-   - **正确做法**：日常推荐用 `Auto` 档（带沙箱）；若确实启用 `Turbo`，务必配合高优先级的 **`Deny > Ask > Allow`** 权限规则（如 `Deny: write_file(~/.ssh)`、`Deny: command(rm -rf)`、`Ask: command(git push --force)`）和/或 `PreToolUse` `hooks.json` 做硬拦截。
+   - **正确做法**：日常推荐用 `Auto` 档（在受支持系统上默认开启沙箱）；若确实启用 `Turbo`，务必配合高优先级的 **`Deny > Ask > Allow`** 权限规则（如 `Deny: write_file(/Users/<user>/.ssh)`、`Deny: write_file(.git/)`、`Deny: command(rm -rf)`、`Ask: command(git push --force)`；注意 `read_file`/`write_file` 不支持 `~/` 展开，Windows 匹配前会自动剥离盘符并将 `\` 转为 `/`）和/或 `PreToolUse` `hooks.json` 做硬拦截。
 
 8. **stdio 型 MCP 被 `npx` 日志打坏、Windows `nvm4w` 启动失败或代理超时**
    - **坑的表现**：`npx` 驱动的 MCP 握手报错；Windows 使用 `nvm-windows`（`nvm4w`）时 MCP 无法直接拉起 `npx`；或经过受控代理跑长任务中途断流。
-   - **原因与机制**：包管理器的提示日志若打到 stdout 会破坏 MCP JSON-RPC 通信；部分 Windows `nvm4w` 环境下直接 spawn `npx` 会找不到 `.cmd` shim。此外（**仅当你处于受控代理环境时参考**）：`agy` Go 原生二进制读取 `HTTPS_PROXY` / `HTTP_PROXY`（IDE 读取 `http.proxy`），**不会读取 Windows WinINet 系统代理**，且代理过短的读超时会切断长连接。
-   - **正确做法**：`npx` 型 stdio MCP 在 `env` 中加 `"NPM_CONFIG_LOGLEVEL": "error"`；Windows `nvm4w` 环境若直调 `npx` 失败，改用 `"command": "cmd", "args": ["/c", "npx", "-y", ...]`；若必须走代理，确保正确设置环境变量并把代理 `read_timeout` 调至 **≥ 15 分钟**。
+   - **原因与机制**：包管理器的提示日志若打到 stdout 会破坏 MCP JSON-RPC 通信；在 Windows `nvm4w` 目录中，无扩展名的 POSIX `npx` 脚本与 `npx.cmd` 并存，非 shell 的直接 `spawn` 会命中无扩展名脚本而无法执行 `npx.cmd`。此外（**仅当你处于受控代理环境时参考**）：`agy` Go 原生二进制读取 `HTTPS_PROXY` / `HTTP_PROXY`（IDE 读取 `http.proxy`），**不会读取 Windows WinINet 系统代理**，且代理过短的读超时会切断长连接。
+   - **正确做法**：`npx` 型 stdio MCP 在 `env` 中加 `"NPM_CONFIG_LOGLEVEL": "error"`；Windows `nvm4w` 环境改用 `"command": "cmd", "args": ["/c", "npx", "-y", ...]`；若必须走代理，确保正确设置环境变量并把代理 `read_timeout` 调至 **≥ 15 分钟**。
 
 9. **记忆/规则只写不治沦为“过时幻觉源”，或脚本写死本机路径**
    - **坑的表现**：把易变行号、临时开关状态、一次性单号记进持久化记忆，或在 `SKILL.md` / 脚本里写死某台电脑的绝对路径。
@@ -261,10 +262,11 @@ plugins/personal-core/
 | 命令 | 适用场景 |
 | --- | --- |
 | `/plan` | 面对跨模块复杂改动，先检索代码并生成可审阅方案再动手 |
-| `/grill-me` | 方案关键边界没想透时，通过交互式追问把设计决策拍实（可与 `/plan` 联用） |
+| `/grill-me` | 方案关键边界没想透时，通过交互式追问把设计决策拍实（可与 `/plan` 组合使用：`/plan /grill-me <任务>`） |
 | `/learn` | 刚纠正完某个不当习惯或解决复杂环境坑点，将经验沉淀为 Rule 或 Skill |
 | `/compact` | 长对话上下文变重时主动压缩摘要，释放窗口并保持响应质量 |
-| `/boost` | 高难度缺陷排查、竞态条件或复杂算法推理（按需启用多 Agent 深度推理） |
+| `/boost` | 高难度缺陷排查、竞态条件或复杂算法推理（按需启用多 Agent 深度推理，**仅付费套餐可用**） |
+| `/swarm` | 启动并编排多 Agent 协同工作（需先在 Customizations > Installed 开启 `swarm`；支持 App 与 CLI 的 Pro / Ultra 套餐） |
 | `/teamwork` | 体量较大、适合拆解给多个自主 Agent 协同推进的工程任务 |
 | `/browser` | 显式唤起浏览器交互与调试流程，验证页面渲染、控制台日志与接口行为 |
 | `/plugin` | 在对话中快捷检索、安装、启停或排查插件配置 |
